@@ -14,9 +14,9 @@ def _in = new PipedInputStream()
 def out = new PipedOutputStream(_in)
 
 // git repositories seeded from svn
-def phase1_dir = new File('test-import-phase1')
+def phase1_dir = new File('import-phase1')
 // fresh git clones of migrated svn repositories
-def phase2_dir = new File('test-import-phase2')
+def phase2_dir = new File('import-phase2')
 
 // perhaps commandline arguments?
 def phase1 = true

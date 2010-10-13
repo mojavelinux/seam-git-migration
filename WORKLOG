@@ -1,8 +1,5 @@
 TODO (blockers):
 ----------------
-- scm urls in pom.xml are leaving behind the svn: prefix
-- commit changes in each phaes 2 module with updates to scm urls in pom.xml and **/readme.txt
-  - Commit message: "Update SCMs to reference git rather than SVN"
 - validate that tags are all present and pointing to the correct revision
 - migrate "build" and "dist" module (unaddress)
 

@@ -19,7 +19,7 @@ def phase1_dir = new File('import-phase1')
 def phase2_dir = new File('import-phase2')
 
 // perhaps commandline arguments?
-def phase1 = true
+def phase1 = false
 def phase2 = true
 
 Thread.start {
@@ -78,6 +78,7 @@ if (phase2) {
    }
 
    update_scm_urls(phase2_dir)
+   commit_and_push(phase2_dir)
 }
 
 def clone_svn_repo(name, context, pull_tags) {
@@ -114,8 +115,8 @@ def clone_git_repo(root, repo) {
    }
    cd(repo)
    git('remote', 'add', 'github', "git@github.com:seam/${github_module}.git").waitForExit()
+   git('remote', 'rm', 'origin').waitForExit()
    git('remote', '-v') >> stdout
-   //git('push', 'github', 'master')
    cd('..')
 }
 
@@ -123,8 +124,8 @@ def clone_existing_git_repo(name, repo) {
    git('clone', repo, name).waitForExit()
    cd(name)
    git('remote', 'add', 'github', "git@github.com:seam/${name}.git").waitForExit()
+   git('remote', 'rm', 'origin').waitForExit()
    git('remote', '-v') >> stdout
-   //git('push', 'github', 'master')
    cd('..')
 }
 
@@ -184,18 +185,45 @@ def update_scm_urls(rootDir) {
    rootDir.eachFileRecurse({ f ->
       if (f.file && f.name ==~ /^(readme.txt|pom\.xml$)/) {
          modifyFile(f, { text ->
+            text = (text =~ /\/persistence\/trunk\/tests-(weld-se|jboss|base)/).replaceAll('/persistence/trunk')
             text = (text =~ /http:\/\/anonsvn\.jboss\.org\/repos\/(weld|seam\/modules)\/([a-z]+)(\/[a-z]*)*/).replaceAll('git://github.com/seam/$2.git')
             text = (text =~ /https:\/\/svn\.jboss\.org\/repos\/(weld|seam\/modules)\/([a-z]+)(\/[a-z]*)*/).replaceAll('git@github.com:seam/$2.git')
-            text = text.replaceAll(/github\.com(:|\/)seam\/remoting/, 'github.com$1seam/js-remoting')
-            text = text.replaceAll(/github\.com(:|\/)seam\/xml/, 'github.com$1seam/xml-config')
             text = (text =~ /http:\/\/fisheye\.jboss\.org\/browse\/(([Ss]eam\/)+modules|weld)\/([a-z]+)(\/[a-z]*)*/).replaceAll('http://github.com/seam/$3')
             text = (text =~ /http:\/\/anonsvn\.jboss\.org\/repos\/seam\/([a-z]+\/)*(parent|examples|dist)(\/trunk(\/[a-z\-]*)?)?/).replaceAll('git://github.com/seam/$2.git')
             text = (text =~ /https:\/\/svn\.jboss\.org\/repos\/seam\/([a-z]+\/)*(parent|examples|dist)(\/trunk(\/[a-z\-]*)?)?/).replaceAll('git@github.com:seam/$2.git')
             text = text.replaceAll(/http:\/\/fisheye\.jboss\.org\/browse\/[Ss]eam(\/[a-z\-]*)*/, "http://github.com/seam")
-            text = text.replaceAll("http://anonsvn.jboss.org/repos/seam", "http://github.com/seam")
+            text = text.replaceAll('http://anonsvn.jboss.org/repos/seam', 'http://github.com/seam')
+            text = text.replaceAll('scm:svn', 'scm:git')
             return text
          })
+         if (f.path.contains('/xml/')) {
+            modifyFile(f, { text ->
+               text = text.replaceAll(/github\.com(:|\/)seam\/xml/, 'github.com$1seam/xml-config')
+               return text
+            })
+         }
+         else if (f.path.contains('/remoting/')) {
+            modifyFile(f, { text ->
+               text = text.replaceAll(/github\.com(:|\/)seam\/remoting/, 'github.com$1seam/js-remoting')
+               return text
+            })
+         }
+         else if (f.path.contains('/exception-handling/')) {
+            modifyFile(f, { text ->
+               text = text.replaceAll('LightGuard/seam-exception-handling', 'seam/exception-handling')
+               text = text.replaceAll('/tree/master', '')
+               return text
+            })
+         }
       }
    })
-   // TODO commit modified files
+}
+
+def commit_and_push(rootDir) {
+   rootDir.eachDir({ d ->
+      cd(d.name)
+      git('commit', '-a', '-m', 'update scm urls to reference git rather than svn') >> stdout
+      //git('push', 'github', 'master') >> stdout
+      cd('..')
+   })
 }

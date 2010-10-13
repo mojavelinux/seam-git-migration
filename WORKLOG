@@ -1,11 +1,13 @@
-TODO:
-----
+TODO (blockers):
+----------------
+- scm urls in pom.xml are leaving behind the svn: prefix
+- commit changes in each phaes 2 module with updates to scm urls in pom.xml and **/readme.txt
+  - Commit message: "Update SCMs to reference git rather than SVN"
+- validate that tags are all present and pointing to the correct revision
+- migrate "build" and "dist" module (unaddress)
 
-blockers:
-- commit changes to files with updated scm urls
-x fork mail module from cody
-x grab scheduling from sandbox
-
-non-blockers:
+TODO (non-blockers):
+--------------------
 - fork sidekick from lincoln
 - grab spreadsheets from sandbox?
+- migration weld archetypes

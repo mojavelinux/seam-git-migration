@@ -1,7 +1,11 @@
 TODO:
 ----
+
+blockers:
 - commit changes to files with updated scm urls
-- fork mail module from cody
+x fork mail module from cody
+x grab scheduling from sandbox
+
+non-blockers:
 - fork sidekick from lincoln
-- grab scheduling from sandbox
 - grab spreadsheets from sandbox?

@@ -9,7 +9,7 @@
 import groosh.Groosh
 Groosh.withGroosh(this)
 
-// Groosh sends out put to an output stream, but XmlSlurper needs an input stream, so using Piped streams and another thread to grab all the modules
+// Groosh sends output to an output stream, but XmlSlurper needs an input stream, so using Piped streams and another thread to grab all the modules
 def _in = new PipedInputStream()
 def out = new PipedOutputStream(_in)
 
@@ -27,7 +27,10 @@ Thread.start {
 }
 
 def modules = new XmlSlurper().parse(_in).list.entry.name.collect { it.text() }
+def sandbox = ['scheduling']
 def others = ['parent', 'dist', 'examples']
+def allsvn = modules + sandbox + others
+def existing = ['mail': 'git://github.com/codylerum/seam-mail.git', 'exception-handling': 'git://github.com/LightGuard/seam-exception-handling.git']
 
 // testing overrides
 //modules = ['faces']
@@ -42,6 +45,10 @@ if (phase1) {
    modules.each { m ->
       clone_svn_repo(m, '/modules', m == 'wicket' ? false : true)
    }
+
+   sandbox.each { s ->
+      clone_svn_repo(s, '/sandbox/modules', false)
+   }
    
    others.each { o ->
       clone_svn_repo(o, '/', o == 'parent' ? true : false)
@@ -52,17 +59,24 @@ if (phase1) {
 }
 
 if (phase2) {
+   
+   // may be set from phase1
+   def env = groosh.getCurrentEnvironment()
+   env.remove('GIT_COMMITTER_NAME')
+   env.remove('GIT_COMMITTER_EMAIL')
+   env.remove('GIT_COMMITTER_DATE')
+
    phase2_dir.mkdir()
    cd(phase2_dir)
    
-   modules.each { m ->
-      clone_git_repo("../$phase1_dir", m)
+   allsvn.each { r ->
+      clone_git_repo("../$phase1_dir", r)
    }
    
-   others.each { o ->
-      clone_git_repo("../$phase1_dir", o)
+   existing.each { n, r ->
+      clone_existing_git_repo(n, r)
    }
-   
+
    update_scm_urls(phase2_dir)
 }
 
@@ -105,6 +119,15 @@ def clone_git_repo(root, repo) {
    cd('..')
 }
 
+def clone_existing_git_repo(name, repo) {
+   git('clone', repo, name).waitForExit()
+   cd(name)
+   git('remote', 'add', 'github', "git@github.com:seam/${name}.git").waitForExit()
+   git('remote', '-v') >> stdout
+   //git('push', 'github', 'master')
+   cd('..')
+}
+
 def fix_tags(repo) {
    cd(repo)
    git('for-each-ref', '--format=%(refname)', 'refs/remotes/tags/*').eachLine { tag_ref ->
@@ -127,7 +150,6 @@ def fix_tags(repo) {
       }
       
       println "$tag revision = $target_ref"
-      // TODO be sure to unset these before the push
       def env = groosh.getCurrentEnvironment()
       env.put('GIT_COMMITTER_NAME', log_meta(tag_ref, '%an'))
       env.put('GIT_COMMITTER_EMAIL', log_meta(tag_ref, '%ae'))

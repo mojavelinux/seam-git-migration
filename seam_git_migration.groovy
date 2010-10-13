@@ -90,10 +90,10 @@ def clone_svn_repo(name, context, pull_tags) {
       trunk += '/parent'
    }
    if (pull_tags) {
-      git('svn', 'clone', svn_uri, '--no-metadata', '--no-minimize-url', "--trunk=$trunk", '--tags=tags', '--authors-file=${authorsFile}') >> stdout
+      git('svn', 'clone', svn_uri, '--no-metadata', '--no-minimize-url', "--trunk=$trunk", '--tags=tags', "--authors-file=${authorsFile}") >> stdout
    }
    else {
-      git('svn', 'clone', svn_uri, '--no-metadata', '--no-minimize-url', "--trunk=$trunk", '--authors-file=${authorsFile}') >> stdout
+      git('svn', 'clone', svn_uri, '--no-metadata', '--no-minimize-url', "--trunk=$trunk", "--authors-file=${authorsFile}") >> stdout
    }
    if (pull_tags) {
       fix_tags(name)

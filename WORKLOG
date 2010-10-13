@@ -1,10 +1,9 @@
 TODO (blockers):
 ----------------
 - validate that tags are all present and pointing to the correct revision
-- migrate "build" and "dist" module (unaddress)
 
 TODO (non-blockers):
 --------------------
-- fork sidekick from lincoln
+- clone sidekick from lincoln
 - grab spreadsheets from sandbox?
-- migration weld archetypes
+- migrate weld archetypes

@@ -19,7 +19,7 @@ def phase1_dir = new File('import-phase1')
 def phase2_dir = new File('import-phase2')
 
 // perhaps commandline arguments?
-def phase1 = false
+def phase1 = true
 def phase2 = true
 
 Thread.start {
@@ -28,19 +28,21 @@ Thread.start {
 
 def modules = new XmlSlurper().parse(_in).list.entry.name.collect { it.text() }
 def sandbox = ['scheduling']
-def others = ['parent', 'dist', 'examples']
-def allsvn = modules + sandbox + others
-def existing = ['mail': 'git://github.com/codylerum/seam-mail.git', 'exception-handling': 'git://github.com/LightGuard/seam-exception-handling.git']
+//def others = ['parent', 'dist', 'examples']
+def others = ['build', 'dist', 'examples']
 
 // testing overrides
-//modules = ['faces']
-//others = ['parent']
+//modules = []
+//sandbox = []
+//others = ['build']
+
+def allsvn = modules + sandbox + others
+def existing = ['mail': 'git://github.com/codylerum/seam-mail.git', 'exception-handling': 'git://github.com/LightGuard/seam-exception-handling.git']
 
 if (phase1) {
 
    phase1_dir.mkdir()
    cd(phase1_dir)
-   
    
    modules.each { m ->
       clone_svn_repo(m, '/modules', m == 'wicket' ? false : true)
@@ -55,7 +57,6 @@ if (phase1) {
    }
    
    cd('..')
-
 }
 
 if (phase2) {
@@ -82,25 +83,24 @@ if (phase2) {
 }
 
 def clone_svn_repo(name, context, pull_tags) {
-   def svn_uri = "http://anonsvn.jboss.org/repos/seam$context/$name"
+   def svn_uri = "http://anonsvn.jboss.org/repos/seam${context}/${name}"
    def trunk = 'trunk'
+   def authorsFile = '../svn.authors'
    if (name == 'parent') {
       trunk += '/parent'
    }
    if (pull_tags) {
-      git('svn', 'clone', svn_uri, '--no-metadata', '--no-minimize-url', "--trunk=$trunk", '--tags=tags', '--authors-file=../../svn.authors') >> stdout
+      git('svn', 'clone', svn_uri, '--no-metadata', '--no-minimize-url', "--trunk=$trunk", '--tags=tags', '--authors-file=${authorsFile}') >> stdout
    }
    else {
-      git('svn', 'clone', svn_uri, '--no-metadata', '--no-minimize-url', "--trunk=$trunk", '--authors-file=../../svn.authors') >> stdout
+      git('svn', 'clone', svn_uri, '--no-metadata', '--no-minimize-url', "--trunk=$trunk", '--authors-file=${authorsFile}') >> stdout
    }
    if (pull_tags) {
       fix_tags(name)
    }
    cd(name)
-   //shell.git('reflog', 'expire', '--all', '--expire=now')
    git('gc') >> stdout
-   //shell.git('prune')
-   //shell.git('fsck', '--full')
+   //git('gc', '--aggresive') >> stdout // this will take more time but will give us better results before we push
    cd('..')
 }
 

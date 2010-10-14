@@ -60,12 +60,6 @@ if (phase1) {
 }
 
 if (phase2) {
-   
-   // may be set from phase1
-   def env = groosh.getCurrentEnvironment()
-   env.remove('GIT_COMMITTER_NAME')
-   env.remove('GIT_COMMITTER_EMAIL')
-   env.remove('GIT_COMMITTER_DATE')
 
    phase2_dir.mkdir()
    cd(phase2_dir)
@@ -79,21 +73,25 @@ if (phase2) {
    }
 
    update_scm_urls(phase2_dir)
+   
+   // may be set from phase1
+   clear_git_committer()
+
    commit_and_push(phase2_dir)
 }
 
 def clone_svn_repo(name, context, pull_tags) {
-   def svn_uri = "http://anonsvn.jboss.org/repos/seam${context}/${name}"
+   def svn_uri = "http://anonsvn.jboss.org/repos/seam$context/$name"
    def trunk = 'trunk'
    def authorsFile = '../svn.authors'
    if (name == 'parent') {
       trunk += '/parent'
    }
    if (pull_tags) {
-      git('svn', 'clone', svn_uri, '--no-metadata', '--no-minimize-url', "--trunk=$trunk", '--tags=tags', "--authors-file=${authorsFile}") >> stdout
+      git('svn', 'clone', svn_uri, '--no-metadata', '--no-minimize-url', "--trunk=$trunk", '--tags=tags', "--authors-file=$authorsFile") >> stdout
    }
    else {
-      git('svn', 'clone', svn_uri, '--no-metadata', '--no-minimize-url', "--trunk=$trunk", "--authors-file=${authorsFile}") >> stdout
+      git('svn', 'clone', svn_uri, '--no-metadata', '--no-minimize-url', "--trunk=$trunk", "--authors-file=$authorsFile") >> stdout
    }
    if (pull_tags) {
       fix_tags(name)
@@ -106,6 +104,7 @@ def clone_svn_repo(name, context, pull_tags) {
 
 def clone_git_repo(root, repo) {
    git('clone', "$root/$repo").waitForExit()
+   cd(repo)
    def github_module = repo
    if (repo == 'remoting') {
       github_module = 'js-remoting'
@@ -113,7 +112,21 @@ def clone_git_repo(root, repo) {
    else if (repo == 'xml') {
       github_module = 'xml-config'
    }
-   cd(repo)
+   else if (repo == 'build') {
+      def build_tags = [
+         [tag: 'seam-parent-1', commit: '9357363e30e78bd72ac18919373f109ca5090746', date: '2010-06-02 13:01:39 +0000'],
+         [tag: 'seam-parent-2', commit: 'e37bf2b1180d2f93b500abc3c6b9b04f9b126831', date: '2010-07-13 17:04:27 +0000'],
+         [tag: 'seam-parent-3', commit: '61ac7e5da2db99bc8f756aaf528703470e336574', date: '2010-08-06 16:22:11 +0000']
+      ]
+      build_tags.each { t ->
+         set_git_committer('Pete Muir', 'pete.muir@jboss.org', t.date)
+         git('tag', '-m', "[maven-scm] copy for tag ${t.tag}", '-a', t.tag, t.commit).waitForExit()
+      }
+   }
+   else if (repo == 'dist') {
+      set_git_committer('Pete Muir', 'pete.muir@jboss.org', '2010-06-02 13:27:17 +0000')
+      git('tag', '-m', '[maven-scm] copy for tag b01', '-a', 'seam-bom-b01', '9a03ff3fbddad2d9ced3f89150872352e6457798').waitForExit()
+   }
    git('remote', 'add', 'github', "git@github.com:seam/${github_module}.git").waitForExit()
    git('remote', 'rm', 'origin').waitForExit()
    git('remote', '-v') >> stdout
@@ -151,10 +164,7 @@ def fix_tags(repo) {
       }
       
       println "$tag revision = $target_ref"
-      def env = groosh.getCurrentEnvironment()
-      env.put('GIT_COMMITTER_NAME', log_meta(tag_ref, '%an'))
-      env.put('GIT_COMMITTER_EMAIL', log_meta(tag_ref, '%ae'))
-      env.put('GIT_COMMITTER_DATE', log_meta(tag_ref, '%ai'))
+      set_git_committer(log_meta(tag_ref, '%an'), log_meta(tag_ref, '%ae'), log_meta(tag_ref, '%ai'))
       pipe_meta(tag_ref, '%s') | git('tag', '-a', '-F', '-', tag, target_ref)
       git('update-ref', '-d', tag_ref)
    }
@@ -176,6 +186,20 @@ def pipe_meta(tag_ref, symbol) {
    return git('log', '-1', "--pretty=\"format:$symbol\"", tag_ref)
 }
 
+def set_git_committer(name, email, date) {
+   def env = groosh.getCurrentEnvironment()
+   env.put('GIT_COMMITTER_NAME', name)
+   env.put('GIT_COMMITTER_EMAIL', email)
+   env.put('GIT_COMMITTER_DATE', date)
+}
+
+def clear_git_committer() {
+   def env = groosh.getCurrentEnvironment()
+   env.remove('GIT_COMMITTER_NAME')
+   env.remove('GIT_COMMITTER_EMAIL')
+   env.remove('GIT_COMMITTER_DATE')
+}
+
 def modifyFile(file, Closure processText) {
     def text = file.text
     file.write(processText(text))
@@ -191,7 +215,7 @@ def update_scm_urls(rootDir) {
             text = (text =~ /http:\/\/fisheye\.jboss\.org\/browse\/(([Ss]eam\/)+modules|weld)\/([a-z]+)(\/[a-z]*)*/).replaceAll('http://github.com/seam/$3')
             text = (text =~ /http:\/\/anonsvn\.jboss\.org\/repos\/seam\/([a-z]+\/)*(parent|examples|dist)(\/trunk(\/[a-z\-]*)?)?/).replaceAll('git://github.com/seam/$2.git')
             text = (text =~ /https:\/\/svn\.jboss\.org\/repos\/seam\/([a-z]+\/)*(parent|examples|dist)(\/trunk(\/[a-z\-]*)?)?/).replaceAll('git@github.com:seam/$2.git')
-            text = text.replaceAll(/http:\/\/fisheye\.jboss\.org\/browse\/[Ss]eam(\/[a-z\-]*)*/, "http://github.com/seam")
+            text = text.replaceAll(/http:\/\/fisheye\.jboss\.org\/browse\/[Ss]eam(\/[a-z\-]*)*/, 'http://github.com/seam')
             text = text.replaceAll('http://anonsvn.jboss.org/repos/seam', 'http://github.com/seam')
             text = text.replaceAll('scm:svn', 'scm:git')
             return text

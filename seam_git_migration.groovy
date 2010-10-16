@@ -37,7 +37,8 @@ def others = ['build', 'dist', 'examples']
 //others = ['build']
 
 def allsvn = modules + sandbox + others
-def existing = ['mail': 'git://github.com/codylerum/seam-mail.git', 'catch': 'git://github.com/LightGuard/seam-exception-handling.git']
+//def existing = ['mail': 'git://github.com/codylerum/seam-mail.git', 'catch': 'git://github.com/LightGuard/seam-exception-handling.git']
+def existing = ['catch': 'git://github.com/LightGuard/seam-exception-handling.git']
 
 if (phase1) {
 
@@ -97,8 +98,7 @@ def clone_svn_repo(name, context, pull_tags) {
       fix_tags(name)
    }
    cd(name)
-   git('gc') >> stdout
-   //git('gc', '--aggresive') >> stdout // this will take more time but will give us better results before we push
+   git('gc', '--aggressive') >> stdout // this will take more time but will give us better results before we push
    cd('..')
 }
 
@@ -247,7 +247,7 @@ def commit_and_push(rootDir) {
    rootDir.eachDir({ d ->
       cd(d.name)
       git('commit', '-a', '-m', 'update scm urls to reference git rather than svn') >> stdout
-      //git('push', 'github', 'master') >> stdout
+      git('push', '--tags', 'github', 'master') >> stdout
       cd('..')
    })
 }

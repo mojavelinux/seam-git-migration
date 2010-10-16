@@ -37,7 +37,7 @@ def others = ['build', 'dist', 'examples']
 //others = ['build']
 
 def allsvn = modules + sandbox + others
-def existing = ['mail': 'git://github.com/codylerum/seam-mail.git', 'exception-handling': 'git://github.com/LightGuard/seam-exception-handling.git']
+def existing = ['mail': 'git://github.com/codylerum/seam-mail.git', 'catch': 'git://github.com/LightGuard/seam-exception-handling.git']
 
 if (phase1) {
 
@@ -232,9 +232,9 @@ def update_scm_urls(rootDir) {
                return text
             })
          }
-         else if (f.path.contains('/exception-handling/')) {
+         else if (f.path.contains('/catch/')) {
             modifyFile(f, { text ->
-               text = text.replaceAll('LightGuard/seam-exception-handling', 'seam/exception-handling')
+               text = text.replaceAll('LightGuard/seam-exception-handling', 'seam/catch')
                text = text.replaceAll('/tree/master', '')
                return text
             })
